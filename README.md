@@ -27,6 +27,13 @@ An open-source, low-cost prototype circuit that detects eye blinks to control Io
 - `drowsiness_detector.ino` – blink-duration based safety system  
 - `user_admin_blinks.ino` – FreeRTOS-based admin/user priority control
 
+## Quick Start
+1. Place EOG electrodes as shown above.
+2. Upload `eog_plotter` to calibrate baseline and trigger level.
+3. Update threshold values in the desired application code.
+4. Upload the target sketch and power the ESP32.
+5. Set the trigger threshold slightly below the blink peak to ensure reliable detection.
+
 ## Schematic and PCB
 
 | Circuit Schematic | PCB Layout |
@@ -37,3 +44,7 @@ An open-source, low-cost prototype circuit that detects eye blinks to control Io
 <p align="center">
   <img src="images/eog_pcb_3D.jpeg" width="600">
 </p>
+
+## Limitations
+Due to the use of low-cost analog components, the system remains susceptible to noise and motion artifacts.  
+The analog front-end is designed to attenuate these effects through filtering and proper biasing, though complete elimination is not possible at this stage.
