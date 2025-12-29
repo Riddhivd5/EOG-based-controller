@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blink Dino Game</title>
+    <!-- Use Google's pixel font -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #222;
+            color: #eee;
+            font-family: 'Press Start 2P', cursive;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            text-align: center;
+        }
+        h1 {
+            font-size: 1.5rem;
+            color: #4CAF50; /* Green */
+        }
+        #game-board {
+            background-color: #333;
+            border-bottom: 4px solid #eee;
+            width: 800px;
+            height: 250px;
+            max-width: 90vw;
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+        #score-container {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 1.2rem;
+        }
+        #message-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.2rem;
+            color: #fff;
+            text-shadow: 2px 2px #000;
+        }
+        /* We'll create the dino and obstacles in JavaScript */
+    </style>
+</head>
+<body>
+    <h1>Blink Dino Game</h1>
+    <div id="game-board">
+        <div id="score-container">SCORE: <span id="score">0</span></div>
+        <div id="message-container">
+            <p>BLINK (OR PRESS SPACE) TO START</p>
+            <p id="game-over" style="display: none; color: #FF5722;">GAME OVER</p>
+        </div>
+    </div>
+
+    <script>
+        // Get all our elements
+        const gameBoard = document.getElementById('game-board');
+        const scoreDisplay = document.getElementById('score');
+        const messageContainer = document.getElementById('message-container');
+        const gameOverMessage = document.getElementById('game-over');
+
+        // Game settings
+        const dinoWidth = 40;
+        const dinoHeight = 60;
+        const gravity = 0.8;
+        const jumpStrength = -18;
+        let gameSpeed = 5; // <-- EASIER: Was 6
+        let score = 0;
+        
+        let dino = null;
+        let obstacles = [];
+        let gameInterval = null;
+        let isGameRunning = false;
+        let canJump = true;
+
+        // --- Dino Object ---
+        function createDino() {
+            if (dino) gameBoard.removeChild(dino); // Clear old dino
+            dino = document.createElement('div');
+            dino.style.position = 'absolute';
+            dino.style.width = `${dinoWidth}px`;
+            dino.style.height = `${dinoHeight}px`;
+            dino.style.backgroundColor = '#4CAF50'; // Green
+            dino.style.bottom = '0px';
+            dino.style.left = '50px';
+            dino.style.borderRadius = '5px';
+            
+            // Store physics properties
+            dino.y = 0;
+            dino.vy = 0; // velocity y
+            dino.isJumping = false;
+
+            gameBoard.appendChild(dino);
+        }
+
+        // --- Obstacle Object ---
+        function createObstacle() {
+            const obstacle = document.createElement('div');
+            obstacle.style.position = 'absolute';
+            obstacle.style.width = '20px';
+            obstacle.style.height = '40px';
+            obstacle.style.backgroundColor = '#FF5722'; // Red
+            obstacle.style.bottom = '0px';
+            obstacle.style.left = '800px'; // Start off-screen
+            obstacle.style.borderRadius = '3px';
+
+            obstacles.push(obstacle);
+            gameBoard.appendChild(obstacle);
+        }
+
+        // --- Game Logic ---
+        function gameLoop() {
+            if (!isGameRunning) return;
+
+            // 1. Update Dino's position (Physics)
+            if (dino.isJumping) {
+                dino.vy += gravity;
+                dino.y += dino.vy;
+                
+                // Check if dino lands
+                if (dino.y >= 0) {
+                    dino.y = 0;
+                    dino.vy = 0;
+                    dino.isJumping = false;
+                    canJump = true; // Allow next jump
+                }
+                dino.style.bottom = `${dino.y * -1}px`; // Invert y for CSS `bottom`
+            }
+
+            // 2. Move obstacles
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+                let obsX = parseFloat(obs.style.left);
+                obsX -= gameSpeed;
+                obs.style.left = `${obsX}px`;
+
+                // 3. Check for collision
+                if (
+                    obsX < 50 + dinoWidth &&  // Front of obstacle in dino
+                    obsX + 20 > 50 &&         // Back of obstacle in dino
+                    dino.y > -dinoHeight      // Dino is on the ground
+                ) {
+                    endGame();
+                    return;
+                }
+
+                // 4. Remove obstacle if off-screen
+                if (obsX < -20) {
+                    obstacles.splice(i, 1);
+                    gameBoard.removeChild(obs);
+                }
+            }
+
+            // 5. Add new obstacles
+            if (obstacles.length === 0 || parseFloat(obstacles[obstacles.length - 1].style.left) < 500) {
+                // EVEN LESS FREQUENT: Was 0.985
+                if (Math.random() > 0.992) { // Randomly spawn
+                    createObstacle();
+                }
+            }
+            
+            // 6. Update score
+            score++;
+            scoreDisplay.textContent = Math.floor(score / 10);
+            
+            // Increase speed
+            if (score % 500 === 0) {
+                gameSpeed += 0.5;
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function dinoJump() {
+            if (isGameRunning && !dino.isJumping && canJump) {
+                dino.isJumping = true;
+                canJump = false; // Prevent double-jumps
+                dino.vy = jumpStrength;
+            }
+        }
+
+        function startGame() {
+            if (isGameRunning) return;
+
+            // Reset all values
+            isGameRunning = true;
+            canJump = true; // <-- THIS IS THE FIX
+            score = 0;
+            gameSpeed = 5; // <-- EASIER: Was 6
+            obstacles.forEach(obs => gameBoard.removeChild(obs));
+            obstacles = [];
+            
+            createDino();
+            
+            messageContainer.style.display = 'none';
+            gameOverMessage.style.display = 'none';
+
+            // Start the loops
+            requestAnimationFrame(gameLoop);
+        }
+
+        function endGame() {
+            isGameRunning = false;
+            messageContainer.style.display = 'block';
+            gameOverMessage.style.display = 'block';
+        }
+
+        // --- Event Listener ---
+        // This is the key! It listens for the "Space" key from
+        // your computer, which will be sent by your ESP32.
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                if (!isGameRunning) {
+                    startGame();
+                } else {
+                    dinoJump();
+                }
+            }
+        });
+        
+        // Also allow touch/click
+        document.addEventListener('mousedown', () => {
+             if (!isGameRunning) {
+                startGame();
+            } else {
+                dinoJump();
+            }
+        });
+
+    </script>
+</body>
+</html>
