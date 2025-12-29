@@ -15,3 +15,8 @@ An open-source, low-cost prototype circuit that detects eye blinks to control Io
 | **Electrodes**                | Standard Ag/AgCl wet ECG/EOG electrodes   |
 | **Feedback**                  | LED (visual), Buzzer (audio)              |
 | **Communication**             | Bluetooth Low Energy (BLE) – HID Keyboard |
+
+## EOG placement
+<p align="center">
+  <img src="images/eog_placement.png" width="420">
+</p>
